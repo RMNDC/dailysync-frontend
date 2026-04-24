@@ -23,25 +23,12 @@ class _ProfileScreenState extends State<ProfileScreen> {
   bool _isSaving = false;
   String _message = '';
   String _email = '';
-  String _selectedEmoji = '😊';
+  String? _profileImageBase64;
 
   // Stats
   int _habitsCount = 0;
   int _goalsCount = 0;
   int _moodsCount = 0;
-
-  static const _emojis = [
-    '😊',
-    '😎',
-    '🐱',
-    '🦊',
-    '🐼',
-    '🦁',
-    '🐸',
-    '🤖',
-    '👾',
-    '🎯',
-  ];
 
   Map<String, String> get _headers => {
     'Content-Type': 'application/json',
@@ -77,13 +64,16 @@ class _ProfileScreenState extends State<ProfileScreen> {
         _usernameController.text = pData['user']['username'] ?? '';
         setState(() {
           _email = pData['user']['email'] ?? '';
-          _selectedEmoji = pData['user']['emoji'] ?? '😊';
+          _profileImageBase64 = pData['user']['profileImage'];
         });
       }
       setState(() {
-        if (hData['success'] == true) _habitsCount = (hData['habits'] as List).length;
-        if (gData['success'] == true) _goalsCount = (gData['goals'] as List).length;
-        if (mData['success'] == true) _moodsCount = (mData['moods'] as List).length;
+        if (hData['success'] == true)
+          _habitsCount = (hData['habits'] as List).length;
+        if (gData['success'] == true)
+          _goalsCount = (gData['goals'] as List).length;
+        if (mData['success'] == true)
+          _moodsCount = (mData['moods'] as List).length;
       });
     } catch (_) {
     } finally {
@@ -102,7 +92,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
         headers: _headers,
         body: jsonEncode({
           'username': _usernameController.text.trim(),
-          'emoji': _selectedEmoji,
+          'profileImage': _profileImageBase64,
         }),
       );
       final data = jsonDecode(response.body);
@@ -252,15 +242,25 @@ class _ProfileScreenState extends State<ProfileScreen> {
   }
 
   Widget _statItem(String emoji, String value, String label) => Expanded(
-    child: Column(children: [
-      Text(emoji, style: const TextStyle(fontSize: 22)),
-      const SizedBox(height: 4),
-      Text(value, style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 18, color: Colors.teal)),
-      Text(label, style: const TextStyle(fontSize: 11, color: Colors.grey)),
-    ]),
+    child: Column(
+      children: [
+        Text(emoji, style: const TextStyle(fontSize: 22)),
+        const SizedBox(height: 4),
+        Text(
+          value,
+          style: const TextStyle(
+            fontWeight: FontWeight.bold,
+            fontSize: 18,
+            color: Colors.teal,
+          ),
+        ),
+        Text(label, style: const TextStyle(fontSize: 11, color: Colors.grey)),
+      ],
+    ),
   );
 
-  Widget _vDivider() => Container(height: 40, width: 1, color: Colors.grey.shade200);
+  Widget _vDivider() =>
+      Container(height: 40, width: 1, color: Colors.grey.shade200);
 
   Widget _featureRow(String emoji, String title, String desc) {
     return Padding(
@@ -288,43 +288,32 @@ class _ProfileScreenState extends State<ProfileScreen> {
     );
   }
 
-  void _showEmojiPicker() {
-    showDialog(
-      context: context,
-      builder: (_) => AlertDialog(
-        title: const Text('Pick your avatar'),
-        content: Wrap(
-          spacing: 12,
-          runSpacing: 12,
-          children: _emojis
-              .map(
-                (e) => GestureDetector(
-                  onTap: () {
-                    setState(() => _selectedEmoji = e);
-                    Navigator.pop(context);
-                  },
-                  child: Container(
-                    padding: const EdgeInsets.all(8),
-                    decoration: BoxDecoration(
-                      color: _selectedEmoji == e
-                          ? Colors.teal.shade50
-                          : Colors.grey.shade100,
-                      borderRadius: BorderRadius.circular(12),
-                      border: Border.all(
-                        color: _selectedEmoji == e
-                            ? Colors.teal
-                            : Colors.transparent,
-                        width: 2,
-                      ),
-                    ),
-                    child: Text(e, style: const TextStyle(fontSize: 32)),
-                  ),
-                ),
-              )
-              .toList(),
-        ),
-      ),
-    );
+  Future<void> _pickProfileImage() async {
+    final uploadInput = html.FileUploadInputElement()..accept = 'image/*';
+
+    uploadInput.click();
+
+    uploadInput.onChange.listen((event) {
+      final file = uploadInput.files?.first;
+      if (file == null) return;
+
+      final reader = html.FileReader();
+
+      reader.onLoadEnd.listen((event) {
+        final result = reader.result;
+        if (result == null) return;
+
+        final dataUrl = result as String;
+        final base64Image = dataUrl.split(',').last;
+
+        if (!mounted) return;
+        setState(() {
+          _profileImageBase64 = base64Image;
+        });
+      });
+
+      reader.readAsDataUrl(file);
+    });
   }
 
   void _logout() {
@@ -354,7 +343,14 @@ class _ProfileScreenState extends State<ProfileScreen> {
             ),
           ),
         ),
-        title: const Text('Profile', style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 20)),
+        title: const Text(
+          'Profile',
+          style: TextStyle(
+            color: Colors.white,
+            fontWeight: FontWeight.bold,
+            fontSize: 20,
+          ),
+        ),
         iconTheme: const IconThemeData(color: Colors.white),
       ),
       body: _isLoading
@@ -363,259 +359,281 @@ class _ProfileScreenState extends State<ProfileScreen> {
               color: Colors.teal,
               onRefresh: _loadProfile,
               child: SingleChildScrollView(
-              physics: const AlwaysScrollableScrollPhysics(),
-              padding: const EdgeInsets.all(24),
-              child: Center(
-                child: ConstrainedBox(
-                  constraints: const BoxConstraints(maxWidth: 480),
-                  child: Column(
-                    children: [
-                      // Avatar
-                      Container(
-                        width: double.infinity,
-                        padding: const EdgeInsets.symmetric(vertical: 32),
-                        decoration: BoxDecoration(
-                          color: Colors.white,
-                          borderRadius: BorderRadius.circular(16),
-                          boxShadow: const [
-                            BoxShadow(
-                              color: Colors.black12,
-                              blurRadius: 10,
-                              offset: Offset(0, 4),
-                            ),
-                          ],
-                        ),
-                        child: Column(
-                          children: [
-                            GestureDetector(
-                              onTap: _showEmojiPicker,
-                              child: Stack(
-                                children: [
-                                  CircleAvatar(
-                                    radius: 52,
-                                    backgroundColor: Colors.teal.shade50,
-                                    child: Text(
-                                      _selectedEmoji,
-                                      style: const TextStyle(fontSize: 44),
-                                    ),
-                                  ),
-                                  Positioned(
-                                    bottom: 0,
-                                    right: 0,
-                                    child: Container(
-                                      padding: const EdgeInsets.all(6),
-                                      decoration: const BoxDecoration(
-                                        color: Colors.teal,
-                                        shape: BoxShape.circle,
-                                      ),
-                                      child: const Icon(
-                                        Icons.edit,
-                                        color: Colors.white,
-                                        size: 14,
-                                      ),
-                                    ),
-                                  ),
-                                ],
-                              ),
-                            ),
-                            const SizedBox(height: 12),
-                            Text(
-                              _usernameController.text.isNotEmpty
-                                  ? _usernameController.text
-                                  : 'No username set',
-                              style: const TextStyle(
-                                fontSize: 20,
-                                fontWeight: FontWeight.bold,
-                              ),
-                            ),
-                            const SizedBox(height: 4),
-                            Text(
-                              _email,
-                              style: const TextStyle(
-                                color: Colors.grey,
-                                fontSize: 14,
-                              ),
-                            ),
-                          ],
-                        ),
-                      ),
-                      const SizedBox(height: 20),
-
-                      // Stats summary
-                      Container(
-                        width: double.infinity,
-                        padding: const EdgeInsets.all(16),
-                        decoration: BoxDecoration(
-                          color: Colors.white,
-                          borderRadius: BorderRadius.circular(16),
-                          boxShadow: const [BoxShadow(color: Colors.black12, blurRadius: 10, offset: Offset(0, 4))],
-                        ),
-                        child: Row(children: [
-                          _statItem('💪', '$_habitsCount', 'Habits'),
-                          _vDivider(),
-                          _statItem('🎯', '$_goalsCount', 'Goals'),
-                          _vDivider(),
-                          _statItem('😊', '$_moodsCount', 'Mood Logs'),
-                        ]),
-                      ),
-
-                      const SizedBox(height: 20),
-
-                      // Edit username
-                      Container(
-                        width: double.infinity,
-                        padding: const EdgeInsets.all(24),
-                        decoration: BoxDecoration(
-                          color: Colors.white,
-                          borderRadius: BorderRadius.circular(16),
-                          boxShadow: const [
-                            BoxShadow(
-                              color: Colors.black12,
-                              blurRadius: 10,
-                              offset: Offset(0, 4),
-                            ),
-                          ],
-                        ),
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            const Text(
-                              'Edit Profile',
-                              style: TextStyle(
-                                fontSize: 16,
-                                fontWeight: FontWeight.bold,
-                              ),
-                            ),
-                            const SizedBox(height: 16),
-                            const Text(
-                              'Username',
-                              style: TextStyle(
-                                fontWeight: FontWeight.w500,
-                                color: Colors.grey,
-                                fontSize: 13,
-                              ),
-                            ),
-                            const SizedBox(height: 8),
-                            TextField(
-                              controller: _usernameController,
-                              decoration: InputDecoration(
-                                hintText: 'Enter your username',
-                                prefixIcon: const Icon(
-                                  Icons.person_outline,
-                                  color: Colors.teal,
-                                ),
-                                border: OutlineInputBorder(
-                                  borderRadius: BorderRadius.circular(10),
-                                ),
-                                focusedBorder: OutlineInputBorder(
-                                  borderRadius: BorderRadius.circular(10),
-                                  borderSide: const BorderSide(
-                                    color: Colors.teal,
-                                    width: 2,
-                                  ),
-                                ),
-                              ),
-                            ),
-                            if (_message.isNotEmpty) ...[
-                              const SizedBox(height: 10),
-                              Text(
-                                _message,
-                                style: const TextStyle(color: Colors.teal),
+                physics: const AlwaysScrollableScrollPhysics(),
+                padding: const EdgeInsets.all(24),
+                child: Center(
+                  child: ConstrainedBox(
+                    constraints: const BoxConstraints(maxWidth: 480),
+                    child: Column(
+                      children: [
+                        // Avatar
+                        Container(
+                          width: double.infinity,
+                          padding: const EdgeInsets.symmetric(vertical: 32),
+                          decoration: BoxDecoration(
+                            color: Colors.white,
+                            borderRadius: BorderRadius.circular(16),
+                            boxShadow: const [
+                              BoxShadow(
+                                color: Colors.black12,
+                                blurRadius: 10,
+                                offset: Offset(0, 4),
                               ),
                             ],
-                            const SizedBox(height: 16),
-                            SizedBox(
-                              width: double.infinity,
-                              child: ElevatedButton(
-                                onPressed: _isSaving ? null : _saveProfile,
-                                style: ElevatedButton.styleFrom(
-                                  backgroundColor: Colors.teal,
-                                  padding: const EdgeInsets.symmetric(
-                                    vertical: 14,
-                                  ),
-                                  shape: RoundedRectangleBorder(
-                                    borderRadius: BorderRadius.circular(10),
-                                  ),
-                                ),
-                                child: _isSaving
-                                    ? const SizedBox(
-                                        height: 20,
-                                        width: 20,
-                                        child: CircularProgressIndicator(
-                                          color: Colors.white,
-                                          strokeWidth: 2,
+                          ),
+                          child: Column(
+                            children: [
+                              GestureDetector(
+                                onTap: _pickProfileImage,
+                                child: Stack(
+                                  children: [
+                                    CircleAvatar(
+                                      radius: 52,
+                                      backgroundColor: Colors.teal.shade50,
+                                      backgroundImage:
+                                          _profileImageBase64 != null &&
+                                              _profileImageBase64!.isNotEmpty
+                                          ? MemoryImage(
+                                              base64Decode(
+                                                _profileImageBase64!,
+                                              ),
+                                            )
+                                          : null,
+                                      child:
+                                          _profileImageBase64 == null ||
+                                              _profileImageBase64!.isEmpty
+                                          ? const Icon(
+                                              Icons.person,
+                                              size: 52,
+                                              color: Colors.teal,
+                                            )
+                                          : null,
+                                    ),
+                                    Positioned(
+                                      bottom: 0,
+                                      right: 0,
+                                      child: Container(
+                                        padding: const EdgeInsets.all(6),
+                                        decoration: const BoxDecoration(
+                                          color: Colors.teal,
+                                          shape: BoxShape.circle,
                                         ),
-                                      )
-                                    : const Text(
-                                        'Save Changes',
-                                        style: TextStyle(
+                                        child: const Icon(
+                                          Icons.edit,
                                           color: Colors.white,
-                                          fontSize: 15,
+                                          size: 14,
                                         ),
                                       ),
+                                    ),
+                                  ],
+                                ),
+                              ),
+                              const SizedBox(height: 12),
+                              Text(
+                                _usernameController.text.isNotEmpty
+                                    ? _usernameController.text
+                                    : 'No username set',
+                                style: const TextStyle(
+                                  fontSize: 20,
+                                  fontWeight: FontWeight.bold,
+                                ),
+                              ),
+                              const SizedBox(height: 4),
+                              Text(
+                                _email,
+                                style: const TextStyle(
+                                  color: Colors.grey,
+                                  fontSize: 14,
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                        const SizedBox(height: 20),
+
+                        // Stats summary
+                        Container(
+                          width: double.infinity,
+                          padding: const EdgeInsets.all(16),
+                          decoration: BoxDecoration(
+                            color: Colors.white,
+                            borderRadius: BorderRadius.circular(16),
+                            boxShadow: const [
+                              BoxShadow(
+                                color: Colors.black12,
+                                blurRadius: 10,
+                                offset: Offset(0, 4),
+                              ),
+                            ],
+                          ),
+                          child: Row(
+                            children: [
+                              _statItem('💪', '$_habitsCount', 'Habits'),
+                              _vDivider(),
+                              _statItem('🎯', '$_goalsCount', 'Goals'),
+                              _vDivider(),
+                              _statItem('😊', '$_moodsCount', 'Mood Logs'),
+                            ],
+                          ),
+                        ),
+
+                        const SizedBox(height: 20),
+
+                        // Edit username
+                        Container(
+                          width: double.infinity,
+                          padding: const EdgeInsets.all(24),
+                          decoration: BoxDecoration(
+                            color: Colors.white,
+                            borderRadius: BorderRadius.circular(16),
+                            boxShadow: const [
+                              BoxShadow(
+                                color: Colors.black12,
+                                blurRadius: 10,
+                                offset: Offset(0, 4),
+                              ),
+                            ],
+                          ),
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              const Text(
+                                'Edit Profile',
+                                style: TextStyle(
+                                  fontSize: 16,
+                                  fontWeight: FontWeight.bold,
+                                ),
+                              ),
+                              const SizedBox(height: 16),
+                              const Text(
+                                'Username',
+                                style: TextStyle(
+                                  fontWeight: FontWeight.w500,
+                                  color: Colors.grey,
+                                  fontSize: 13,
+                                ),
+                              ),
+                              const SizedBox(height: 8),
+                              TextField(
+                                controller: _usernameController,
+                                decoration: InputDecoration(
+                                  hintText: 'Enter your username',
+                                  prefixIcon: const Icon(
+                                    Icons.person_outline,
+                                    color: Colors.teal,
+                                  ),
+                                  border: OutlineInputBorder(
+                                    borderRadius: BorderRadius.circular(10),
+                                  ),
+                                  focusedBorder: OutlineInputBorder(
+                                    borderRadius: BorderRadius.circular(10),
+                                    borderSide: const BorderSide(
+                                      color: Colors.teal,
+                                      width: 2,
+                                    ),
+                                  ),
+                                ),
+                              ),
+                              if (_message.isNotEmpty) ...[
+                                const SizedBox(height: 10),
+                                Text(
+                                  _message,
+                                  style: const TextStyle(color: Colors.teal),
+                                ),
+                              ],
+                              const SizedBox(height: 16),
+                              SizedBox(
+                                width: double.infinity,
+                                child: ElevatedButton(
+                                  onPressed: _isSaving ? null : _saveProfile,
+                                  style: ElevatedButton.styleFrom(
+                                    backgroundColor: Colors.teal,
+                                    padding: const EdgeInsets.symmetric(
+                                      vertical: 14,
+                                    ),
+                                    shape: RoundedRectangleBorder(
+                                      borderRadius: BorderRadius.circular(10),
+                                    ),
+                                  ),
+                                  child: _isSaving
+                                      ? const SizedBox(
+                                          height: 20,
+                                          width: 20,
+                                          child: CircularProgressIndicator(
+                                            color: Colors.white,
+                                            strokeWidth: 2,
+                                          ),
+                                        )
+                                      : const Text(
+                                          'Save Changes',
+                                          style: TextStyle(
+                                            color: Colors.white,
+                                            fontSize: 15,
+                                          ),
+                                        ),
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                        const SizedBox(height: 20),
+
+                        // Settings
+                        Container(
+                          width: double.infinity,
+                          decoration: BoxDecoration(
+                            color: Colors.white,
+                            borderRadius: BorderRadius.circular(16),
+                            boxShadow: const [
+                              BoxShadow(
+                                color: Colors.black12,
+                                blurRadius: 10,
+                                offset: Offset(0, 4),
+                              ),
+                            ],
+                          ),
+                          child: Column(
+                            children: [
+                              _SettingsTile(
+                                icon: Icons.info_outline,
+                                label: 'About DailySync',
+                                onTap: _showAbout,
+                              ),
+                            ],
+                          ),
+                        ),
+                        const SizedBox(height: 20),
+
+                        // Logout
+                        SizedBox(
+                          width: double.infinity,
+                          child: OutlinedButton.icon(
+                            onPressed: _logout,
+                            icon: const Icon(Icons.logout, color: Colors.red),
+                            label: const Text(
+                              'Log Out',
+                              style: TextStyle(
+                                color: Colors.red,
+                                fontSize: 15,
+                                fontWeight: FontWeight.w600,
                               ),
                             ),
-                          ],
-                        ),
-                      ),
-                      const SizedBox(height: 20),
-
-                      // Settings
-                      Container(
-                        width: double.infinity,
-                        decoration: BoxDecoration(
-                          color: Colors.white,
-                          borderRadius: BorderRadius.circular(16),
-                          boxShadow: const [
-                            BoxShadow(
-                              color: Colors.black12,
-                              blurRadius: 10,
-                              offset: Offset(0, 4),
-                            ),
-                          ],
-                        ),
-                        child: Column(
-                          children: [
-                            _SettingsTile(
-                              icon: Icons.info_outline,
-                              label: 'About DailySync',
-                              onTap: _showAbout,
-                            ),
-                          ],
-                        ),
-                      ),
-                      const SizedBox(height: 20),
-
-                      // Logout
-                      SizedBox(
-                        width: double.infinity,
-                        child: OutlinedButton.icon(
-                          onPressed: _logout,
-                          icon: const Icon(Icons.logout, color: Colors.red),
-                          label: const Text(
-                            'Log Out',
-                            style: TextStyle(
-                              color: Colors.red,
-                              fontSize: 15,
-                              fontWeight: FontWeight.w600,
-                            ),
-                          ),
-                          style: OutlinedButton.styleFrom(
-                            padding: const EdgeInsets.symmetric(vertical: 14),
-                            side: const BorderSide(color: Colors.red),
-                            shape: RoundedRectangleBorder(
-                              borderRadius: BorderRadius.circular(10),
+                            style: OutlinedButton.styleFrom(
+                              padding: const EdgeInsets.symmetric(vertical: 14),
+                              side: const BorderSide(color: Colors.red),
+                              shape: RoundedRectangleBorder(
+                                borderRadius: BorderRadius.circular(10),
+                              ),
                             ),
                           ),
                         ),
-                      ),
-                      const SizedBox(height: 12),
-                    ],
+                        const SizedBox(height: 12),
+                      ],
+                    ),
                   ),
                 ),
               ),
             ),
-          ),
     );
   }
 }
