@@ -175,13 +175,18 @@ class _LoginScreenState extends State<LoginScreen> {
           await prefs.setBool('remember_me', false);
         }
 
+        if (!mounted) return;
+
         html.window.localStorage['token'] = data['token'];
         html.window.localStorage['userId'] = data['userId'].toString();
+
         Navigator.pushReplacement(
           context,
           MaterialPageRoute(
-            builder: (_) =>
-                DashboardScreen(token: data['token'], userId: data['userId']),
+            builder: (_) => DashboardScreen(
+              token: data['token'],
+              userId: data['userId'].toString(),
+            ),
           ),
         );
       } else {
