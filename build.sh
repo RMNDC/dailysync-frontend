@@ -7,4 +7,4 @@ export PATH="$HOME/flutter/bin:$PATH"
 
 flutter config --enable-web
 flutter pub get
-flutter build web --release --pwa-strategy=none
+flutter build web --release
