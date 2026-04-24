@@ -470,18 +470,18 @@ class DashboardScreen extends StatefulWidget {
 
 class _DashboardScreenState extends State<DashboardScreen> {
   int _currentIndex = 0;
+  Key _homeKey = UniqueKey();
 
-  late final List<Widget> _screens = [
-    _HomeTab(
-      token: widget.token,
-      userId: widget.userId,
-      onTabChange: (i) => setState(() => _currentIndex = i),
-    ),
-    HabitsScreen(token: widget.token, userId: widget.userId),
-    MoodScreen(token: widget.token, userId: widget.userId),
-    GoalsScreen(token: widget.token, userId: widget.userId),
-    ProfileScreen(token: widget.token, userId: widget.userId),
-  ];
+  void _changeTab(int index) {
+    setState(() {
+      _currentIndex = index;
+
+      // Recreate Home when returning to it so it fetches the latest profile image.
+      if (index == 0) {
+        _homeKey = UniqueKey();
+      }
+    });
+  }
 
   @override
   void initState() {
@@ -499,8 +499,21 @@ class _DashboardScreenState extends State<DashboardScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final screens = [
+      _HomeTab(
+        key: _homeKey,
+        token: widget.token,
+        userId: widget.userId,
+        onTabChange: _changeTab,
+      ),
+      HabitsScreen(token: widget.token, userId: widget.userId),
+      MoodScreen(token: widget.token, userId: widget.userId),
+      GoalsScreen(token: widget.token, userId: widget.userId),
+      ProfileScreen(token: widget.token, userId: widget.userId),
+    ];
+
     return Scaffold(
-      body: IndexedStack(index: _currentIndex, children: _screens),
+      body: IndexedStack(index: _currentIndex, children: screens),
       bottomNavigationBar: Container(
         decoration: BoxDecoration(
           boxShadow: [
@@ -513,7 +526,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
         ),
         child: BottomNavigationBar(
           currentIndex: _currentIndex,
-          onTap: (i) => setState(() => _currentIndex = i),
+          onTap: _changeTab,
           type: BottomNavigationBarType.fixed,
           selectedItemColor: Colors.teal,
           unselectedItemColor: Colors.grey,
@@ -563,7 +576,12 @@ class _HomeTab extends StatefulWidget {
   final String? token;
   final String? userId;
   final void Function(int) onTabChange;
-  const _HomeTab({this.token, this.userId, required this.onTabChange});
+  const _HomeTab({
+    super.key,
+    this.token,
+    this.userId,
+    required this.onTabChange,
+  });
 
   @override
   State<_HomeTab> createState() => _HomeTabState();
