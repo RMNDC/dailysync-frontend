@@ -302,7 +302,10 @@ class _LoginScreenState extends State<LoginScreen> {
                         obscureText: _obscure,
                         autofillHints: const [AutofillHints.password],
                         textInputAction: TextInputAction.done,
-                        onSubmitted: (_) => _login(),
+                        onSubmitted: (_) {
+                          TextInput.finishAutofillContext();
+                          _login();
+                        },
                         decoration: InputDecoration(
                           hintText: 'Enter your password',
                           prefixIcon: const Icon(
@@ -468,6 +471,8 @@ class _LoginScreenState extends State<LoginScreen> {
       keyboardType: keyboard,
       autofillHints: autofillHints,
       textInputAction: textInputAction,
+      autocorrect: false,
+      enableSuggestions: false,
       decoration: InputDecoration(
         hintText: hint,
         prefixIcon: Icon(icon, color: Colors.teal),
