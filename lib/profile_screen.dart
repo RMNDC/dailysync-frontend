@@ -317,9 +317,11 @@ class _ProfileScreenState extends State<ProfileScreen> {
   }
 
   void _logout() {
-    // ✅ Clear localStorage so user is fully logged out on refresh
+    // Clear all login tokens so user is fully logged out on refresh and app restart.
     html.window.localStorage.remove('token');
     html.window.localStorage.remove('userId');
+    html.window.sessionStorage.remove('token');
+    html.window.sessionStorage.remove('userId');
     Navigator.pushAndRemoveUntil(
       context,
       MaterialPageRoute(builder: (_) => const LoginScreen()),
@@ -332,6 +334,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
     return Scaffold(
       backgroundColor: const Color(0xFFF5F7FA),
       appBar: AppBar(
+        automaticallyImplyLeading: false,
         backgroundColor: Colors.transparent,
         elevation: 0,
         flexibleSpace: Container(

@@ -49,8 +49,13 @@ class _AuthGateState extends State<AuthGate> {
   }
 
   void _checkLogin() {
-    final token = html.window.localStorage['token'];
-    final userId = html.window.localStorage['userId'];
+    final token =
+        html.window.sessionStorage['token'] ??
+        html.window.localStorage['token'];
+    final userId =
+        html.window.sessionStorage['userId'] ??
+        html.window.localStorage['userId'];
+
     if (token != null && token.isNotEmpty) {
       Navigator.pushReplacement(
         context,
@@ -109,12 +114,12 @@ class _LoginScreenState extends State<LoginScreen> {
   String _message = '';
   bool _isLoading = false;
   bool _obscure = true;
-  bool _rememberMe = false;
+  bool _keepSignedIn = false;
 
   @override
   void initState() {
     super.initState();
-    _loadSavedCredentials();
+    _loadSavedLoginPreference();
   }
 
   @override
@@ -124,19 +129,16 @@ class _LoginScreenState extends State<LoginScreen> {
     super.dispose();
   }
 
-  Future<void> _loadSavedCredentials() async {
+  Future<void> _loadSavedLoginPreference() async {
     final prefs = await SharedPreferences.getInstance();
-    final remember = prefs.getBool('remember_me') ?? false;
-    if (remember) {
-      final savedEmail = prefs.getString('saved_email') ?? '';
-      final savedPassword = prefs.getString('saved_password') ?? '';
-      if (savedEmail.isNotEmpty) {
-        setState(() {
-          _emailCtrl.text = savedEmail;
-          _passCtrl.text = savedPassword;
-          _rememberMe = true;
-        });
-      }
+    final keepSignedIn = prefs.getBool('keep_signed_in') ?? false;
+    final savedEmail = prefs.getString('saved_email') ?? '';
+
+    if (savedEmail.isNotEmpty || keepSignedIn) {
+      setState(() {
+        _emailCtrl.text = savedEmail;
+        _keepSignedIn = keepSignedIn;
+      });
     }
   }
 
@@ -163,30 +165,41 @@ class _LoginScreenState extends State<LoginScreen> {
       if (!mounted) return;
 
       if (data['success'] == true) {
-        // Save or clear credentials based on remember me
+        // Never save the raw password. Let the phone/browser password manager handle it.
         final prefs = await SharedPreferences.getInstance();
-        if (_rememberMe) {
+        if (_keepSignedIn) {
           await prefs.setString('saved_email', _emailCtrl.text.trim());
-          await prefs.setString('saved_password', _passCtrl.text);
-          await prefs.setBool('remember_me', true);
+          await prefs.setBool('keep_signed_in', true);
         } else {
           await prefs.remove('saved_email');
-          await prefs.remove('saved_password');
-          await prefs.setBool('remember_me', false);
+          await prefs.setBool('keep_signed_in', false);
         }
+        await prefs.remove('saved_password');
+        await prefs.remove('remember_me');
 
         if (!mounted) return;
 
-        html.window.localStorage['token'] = data['token'];
-        html.window.localStorage['userId'] = data['userId'].toString();
+        TextInput.finishAutofillContext();
+
+        final token = data['token'].toString();
+        final userId = data['userId'].toString();
+
+        if (_keepSignedIn) {
+          html.window.localStorage['token'] = token;
+          html.window.localStorage['userId'] = userId;
+          html.window.sessionStorage.remove('token');
+          html.window.sessionStorage.remove('userId');
+        } else {
+          html.window.sessionStorage['token'] = token;
+          html.window.sessionStorage['userId'] = userId;
+          html.window.localStorage.remove('token');
+          html.window.localStorage.remove('userId');
+        }
 
         Navigator.pushReplacement(
           context,
           MaterialPageRoute(
-            builder: (_) => DashboardScreen(
-              token: data['token'],
-              userId: data['userId'].toString(),
-            ),
+            builder: (_) => DashboardScreen(token: token, userId: userId),
           ),
         );
       } else {
@@ -274,6 +287,11 @@ class _LoginScreenState extends State<LoginScreen> {
                         hint: 'Enter your email',
                         icon: Icons.email_outlined,
                         keyboard: TextInputType.emailAddress,
+                        autofillHints: const [
+                          AutofillHints.username,
+                          AutofillHints.email,
+                        ],
+                        textInputAction: TextInputAction.next,
                       ),
                       const SizedBox(height: 16),
                       _label('Password'),
@@ -281,6 +299,9 @@ class _LoginScreenState extends State<LoginScreen> {
                       TextField(
                         controller: _passCtrl,
                         obscureText: _obscure,
+                        autofillHints: const [AutofillHints.password],
+                        textInputAction: TextInputAction.done,
+                        onSubmitted: (_) => _login(),
                         decoration: InputDecoration(
                           hintText: 'Enter your password',
                           prefixIcon: const Icon(
@@ -312,18 +333,18 @@ class _LoginScreenState extends State<LoginScreen> {
                         ),
                       ),
 
-                      // Remember me checkbox
+                      // Keep me signed in checkbox
                       const SizedBox(height: 8),
                       Row(
                         children: [
                           Checkbox(
-                            value: _rememberMe,
+                            value: _keepSignedIn,
                             activeColor: Colors.teal,
                             onChanged: (v) =>
-                                setState(() => _rememberMe = v ?? false),
+                                setState(() => _keepSignedIn = v ?? false),
                           ),
                           const Text(
-                            'Remember me',
+                            'Keep me signed in',
                             style: TextStyle(color: Colors.grey, fontSize: 13),
                           ),
                         ],
@@ -438,10 +459,14 @@ class _LoginScreenState extends State<LoginScreen> {
     required String hint,
     required IconData icon,
     TextInputType? keyboard,
+    Iterable<String>? autofillHints,
+    TextInputAction? textInputAction,
   }) {
     return TextField(
       controller: controller,
       keyboardType: keyboard,
+      autofillHints: autofillHints,
+      textInputAction: textInputAction,
       decoration: InputDecoration(
         hintText: hint,
         prefixIcon: Icon(icon, color: Colors.teal),
