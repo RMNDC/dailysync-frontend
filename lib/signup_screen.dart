@@ -2,6 +2,7 @@ import 'dart:convert';
 import 'dart:math';
 
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:http/http.dart' as http;
 
 import 'package:dailysync/config.dart';
@@ -19,6 +20,9 @@ class _SignupScreenState extends State<SignupScreen> {
   final TextEditingController _passwordController = TextEditingController();
   final TextEditingController _confirmPasswordController =
       TextEditingController();
+  final FocusNode _emailFocusNode = FocusNode();
+  final FocusNode _passwordFocusNode = FocusNode();
+  final FocusNode _confirmPasswordFocusNode = FocusNode();
 
   String _message = '';
   bool _isLoading = false;
@@ -27,6 +31,9 @@ class _SignupScreenState extends State<SignupScreen> {
 
   @override
   void dispose() {
+    _emailFocusNode.dispose();
+    _passwordFocusNode.dispose();
+    _confirmPasswordFocusNode.dispose();
     _emailController.dispose();
     _passwordController.dispose();
     _confirmPasswordController.dispose();
@@ -53,6 +60,8 @@ class _SignupScreenState extends State<SignupScreen> {
   }
 
   Future<void> _signup() async {
+    if (_isLoading) return;
+
     if (_emailController.text.trim().isEmpty ||
         _passwordController.text.isEmpty) {
       setState(() => _message = 'Please fill in all fields!');
@@ -83,6 +92,8 @@ class _SignupScreenState extends State<SignupScreen> {
       if (!mounted) return;
 
       if (data['success'] == true) {
+        TextInput.finishAutofillContext(shouldSave: true);
+
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(
             content: Text('🎉 Account created! Please log in.'),
@@ -160,149 +171,169 @@ class _SignupScreenState extends State<SignupScreen> {
                       ),
                     ],
                   ),
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      const Text(
-                        'Create account',
-                        style: TextStyle(
-                          fontSize: 22,
-                          fontWeight: FontWeight.bold,
-                        ),
-                      ),
-                      const SizedBox(height: 4),
-                      const Text(
-                        'Sign up to get started',
-                        style: TextStyle(color: Colors.grey, fontSize: 14),
-                      ),
-                      const SizedBox(height: 28),
-
-                      // Email
-                      _label('Email'),
-                      const SizedBox(height: 8),
-                      _field(
-                        controller: _emailController,
-                        hint: 'Enter your email',
-                        icon: Icons.email_outlined,
-                        keyboard: TextInputType.emailAddress,
-                      ),
-                      const SizedBox(height: 16),
-
-                      // Password
-                      _label('Password'),
-                      const SizedBox(height: 8),
-                      _passwordField(
-                        controller: _passwordController,
-                        hint: 'Enter your password',
-                        obscure: _obscurePassword,
-                        onToggle: () => setState(
-                          () => _obscurePassword = !_obscurePassword,
-                        ),
-                      ),
-                      const SizedBox(height: 16),
-
-                      // Confirm Password
-                      _label('Confirm Password'),
-                      const SizedBox(height: 8),
-                      _passwordField(
-                        controller: _confirmPasswordController,
-                        hint: 'Confirm your password',
-                        obscure: _obscureConfirmPassword,
-                        onToggle: () => setState(
-                          () => _obscureConfirmPassword =
-                              !_obscureConfirmPassword,
-                        ),
-                      ),
-
-                      // Error message — styled same as Login
-                      if (_message.isNotEmpty) ...[
-                        const SizedBox(height: 12),
-                        Container(
-                          padding: const EdgeInsets.all(10),
-                          decoration: BoxDecoration(
-                            color: Colors.red.shade50,
-                            borderRadius: BorderRadius.circular(8),
-                          ),
-                          child: Row(
-                            children: [
-                              const Icon(
-                                Icons.error_outline,
-                                color: Colors.red,
-                                size: 16,
-                              ),
-                              const SizedBox(width: 8),
-                              Expanded(
-                                child: Text(
-                                  _message,
-                                  style: const TextStyle(
-                                    color: Colors.red,
-                                    fontSize: 13,
-                                  ),
-                                ),
-                              ),
-                            ],
+                  child: AutofillGroup(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        const Text(
+                          'Create account',
+                          style: TextStyle(
+                            fontSize: 22,
+                            fontWeight: FontWeight.bold,
                           ),
                         ),
-                      ],
+                        const SizedBox(height: 4),
+                        const Text(
+                          'Sign up to get started',
+                          style: TextStyle(color: Colors.grey, fontSize: 14),
+                        ),
+                        const SizedBox(height: 28),
 
-                      const SizedBox(height: 24),
+                        // Email
+                        _label('Email'),
+                        const SizedBox(height: 8),
+                        _field(
+                          controller: _emailController,
+                          hint: 'Enter your email',
+                          icon: Icons.email_outlined,
+                          focusNode: _emailFocusNode,
+                          keyboard: TextInputType.emailAddress,
+                          autofillHints: const [
+                            AutofillHints.username,
+                            AutofillHints.email,
+                            AutofillHints.newUsername,
+                          ],
+                          textInputAction: TextInputAction.next,
+                          onSubmitted: (_) =>
+                              _passwordFocusNode.requestFocus(),
+                        ),
+                        const SizedBox(height: 16),
 
-                      // Submit button
-                      SizedBox(
-                        width: double.infinity,
-                        height: 52,
-                        child: ElevatedButton(
-                          onPressed: _isLoading ? null : _signup,
-                          style: ElevatedButton.styleFrom(
-                            backgroundColor: Colors.teal,
-                            shape: RoundedRectangleBorder(
-                              borderRadius: BorderRadius.circular(12),
+                        // Password
+                        _label('Password'),
+                        const SizedBox(height: 8),
+                        _passwordField(
+                          controller: _passwordController,
+                          hint: 'Enter your password',
+                          focusNode: _passwordFocusNode,
+                          obscure: _obscurePassword,
+                          autofillHints: const [AutofillHints.newPassword],
+                          textInputAction: TextInputAction.next,
+                          onSubmitted: (_) =>
+                              _confirmPasswordFocusNode.requestFocus(),
+                          onToggle: () => setState(
+                            () => _obscurePassword = !_obscurePassword,
+                          ),
+                        ),
+                        const SizedBox(height: 16),
+
+                        // Confirm Password
+                        _label('Confirm Password'),
+                        const SizedBox(height: 8),
+                        _passwordField(
+                          controller: _confirmPasswordController,
+                          hint: 'Confirm your password',
+                          focusNode: _confirmPasswordFocusNode,
+                          obscure: _obscureConfirmPassword,
+                          autofillHints: const [AutofillHints.newPassword],
+                          textInputAction: TextInputAction.done,
+                          onSubmitted: (_) => _signup(),
+                          onToggle: () => setState(
+                            () => _obscureConfirmPassword =
+                                !_obscureConfirmPassword,
+                          ),
+                        ),
+
+                        // Error message — styled same as Login
+                        if (_message.isNotEmpty) ...[
+                          const SizedBox(height: 12),
+                          Container(
+                            padding: const EdgeInsets.all(10),
+                            decoration: BoxDecoration(
+                              color: Colors.red.shade50,
+                              borderRadius: BorderRadius.circular(8),
                             ),
-                            elevation: 2,
-                          ),
-                          child: _isLoading
-                              ? const SizedBox(
-                                  height: 22,
-                                  width: 22,
-                                  child: CircularProgressIndicator(
-                                    color: Colors.white,
-                                    strokeWidth: 2,
-                                  ),
-                                )
-                              : const Text(
-                                  'Create Account',
-                                  style: TextStyle(
-                                    fontSize: 16,
-                                    color: Colors.white,
-                                    fontWeight: FontWeight.bold,
-                                  ),
-                                ),
-                        ),
-                      ),
-                      const SizedBox(height: 20),
-
-                      // Login link
-                      Center(
-                        child: GestureDetector(
-                          onTap: () => Navigator.pop(context),
-                          child: const Text.rich(
-                            TextSpan(
-                              text: 'Already have an account? ',
-                              style: TextStyle(color: Colors.grey),
+                            child: Row(
                               children: [
-                                TextSpan(
-                                  text: 'Login',
-                                  style: TextStyle(
-                                    color: Colors.teal,
-                                    fontWeight: FontWeight.bold,
+                                const Icon(
+                                  Icons.error_outline,
+                                  color: Colors.red,
+                                  size: 16,
+                                ),
+                                const SizedBox(width: 8),
+                                Expanded(
+                                  child: Text(
+                                    _message,
+                                    style: const TextStyle(
+                                      color: Colors.red,
+                                      fontSize: 13,
+                                    ),
                                   ),
                                 ),
                               ],
                             ),
                           ),
+                        ],
+
+                        const SizedBox(height: 24),
+
+                        // Submit button
+                        SizedBox(
+                          width: double.infinity,
+                          height: 52,
+                          child: ElevatedButton(
+                            onPressed: _isLoading ? null : _signup,
+                            style: ElevatedButton.styleFrom(
+                              backgroundColor: Colors.teal,
+                              shape: RoundedRectangleBorder(
+                                borderRadius: BorderRadius.circular(12),
+                              ),
+                              elevation: 2,
+                            ),
+                            child: _isLoading
+                                ? const SizedBox(
+                                    height: 22,
+                                    width: 22,
+                                    child: CircularProgressIndicator(
+                                      color: Colors.white,
+                                      strokeWidth: 2,
+                                    ),
+                                  )
+                                : const Text(
+                                    'Create Account',
+                                    style: TextStyle(
+                                      fontSize: 16,
+                                      color: Colors.white,
+                                      fontWeight: FontWeight.bold,
+                                    ),
+                                  ),
+                          ),
                         ),
-                      ),
-                    ],
+                        const SizedBox(height: 20),
+
+                        // Login link
+                        Center(
+                          child: GestureDetector(
+                            onTap: () => Navigator.pop(context),
+                            child: const Text.rich(
+                              TextSpan(
+                                text: 'Already have an account? ',
+                                style: TextStyle(color: Colors.grey),
+                                children: [
+                                  TextSpan(
+                                    text: 'Login',
+                                    style: TextStyle(
+                                      color: Colors.teal,
+                                      fontWeight: FontWeight.bold,
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            ),
+                          ),
+                        ),
+                      ],
+                    ),
                   ),
                 ),
 
@@ -324,11 +355,22 @@ class _SignupScreenState extends State<SignupScreen> {
     required TextEditingController controller,
     required String hint,
     required IconData icon,
+    FocusNode? focusNode,
     TextInputType? keyboard,
+    Iterable<String>? autofillHints,
+    TextInputAction? textInputAction,
+    ValueChanged<String>? onSubmitted,
   }) {
     return TextField(
       controller: controller,
+      focusNode: focusNode,
       keyboardType: keyboard,
+      autofillHints: autofillHints,
+      textInputAction: textInputAction,
+      textCapitalization: TextCapitalization.none,
+      autocorrect: false,
+      enableSuggestions: false,
+      onSubmitted: onSubmitted,
       decoration: InputDecoration(
         hintText: hint,
         prefixIcon: Icon(icon, color: Colors.teal),
@@ -346,12 +388,24 @@ class _SignupScreenState extends State<SignupScreen> {
   Widget _passwordField({
     required TextEditingController controller,
     required String hint,
+    required FocusNode focusNode,
     required bool obscure,
+    Iterable<String>? autofillHints,
+    TextInputAction? textInputAction,
+    ValueChanged<String>? onSubmitted,
     required VoidCallback onToggle,
   }) {
     return TextField(
       controller: controller,
+      focusNode: focusNode,
       obscureText: obscure,
+      keyboardType: TextInputType.visiblePassword,
+      autofillHints: autofillHints,
+      textInputAction: textInputAction,
+      textCapitalization: TextCapitalization.none,
+      autocorrect: false,
+      enableSuggestions: false,
+      onSubmitted: onSubmitted,
       decoration: InputDecoration(
         hintText: hint,
         prefixIcon: const Icon(Icons.lock_outline, color: Colors.teal),

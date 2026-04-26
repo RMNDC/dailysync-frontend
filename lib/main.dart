@@ -112,6 +112,8 @@ class LoginScreen extends StatefulWidget {
 class _LoginScreenState extends State<LoginScreen> {
   final _emailCtrl = TextEditingController();
   final _passCtrl = TextEditingController();
+  final _emailFocusNode = FocusNode();
+  final _passwordFocusNode = FocusNode();
   String _message = '';
   bool _isLoading = false;
   bool _obscure = true;
@@ -125,6 +127,8 @@ class _LoginScreenState extends State<LoginScreen> {
 
   @override
   void dispose() {
+    _emailFocusNode.dispose();
+    _passwordFocusNode.dispose();
     _emailCtrl.dispose();
     _passCtrl.dispose();
     super.dispose();
@@ -134,6 +138,7 @@ class _LoginScreenState extends State<LoginScreen> {
     final prefs = await SharedPreferences.getInstance();
     final keepSignedIn = prefs.getBool('keep_signed_in') ?? false;
     final savedEmail = prefs.getString('saved_email') ?? '';
+    if (!mounted) return;
 
     if (savedEmail.isNotEmpty || keepSignedIn) {
       setState(() {
@@ -144,6 +149,8 @@ class _LoginScreenState extends State<LoginScreen> {
   }
 
   void _login() async {
+    if (_isLoading) return;
+
     if (_emailCtrl.text.trim().isEmpty || _passCtrl.text.isEmpty) {
       setState(() => _message = 'Please enter your email and password.');
       return;
@@ -288,22 +295,30 @@ class _LoginScreenState extends State<LoginScreen> {
                           controller: _emailCtrl,
                           hint: 'Enter your email',
                           icon: Icons.email_outlined,
+                          focusNode: _emailFocusNode,
                           keyboard: TextInputType.emailAddress,
-                          autofillHints: const [AutofillHints.username],
+                          autofillHints: const [
+                            AutofillHints.username,
+                            AutofillHints.email,
+                          ],
                           textInputAction: TextInputAction.next,
+                          onSubmitted: (_) =>
+                              _passwordFocusNode.requestFocus(),
                         ),
                         const SizedBox(height: 16),
                         _label('Password'),
                         const SizedBox(height: 8),
                         TextField(
                           controller: _passCtrl,
+                          focusNode: _passwordFocusNode,
                           obscureText: _obscure,
+                          keyboardType: TextInputType.visiblePassword,
                           autofillHints: const [AutofillHints.password],
                           textInputAction: TextInputAction.done,
-                          onSubmitted: (_) {
-                            TextInput.finishAutofillContext(shouldSave: true);
-                            _login();
-                          },
+                          textCapitalization: TextCapitalization.none,
+                          autocorrect: false,
+                          enableSuggestions: false,
+                          onSubmitted: (_) => _login(),
                           decoration: InputDecoration(
                             hintText: 'Enter your password',
                             prefixIcon: const Icon(
@@ -464,17 +479,22 @@ class _LoginScreenState extends State<LoginScreen> {
     required TextEditingController controller,
     required String hint,
     required IconData icon,
+    FocusNode? focusNode,
     TextInputType? keyboard,
     Iterable<String>? autofillHints,
     TextInputAction? textInputAction,
+    ValueChanged<String>? onSubmitted,
   }) {
     return TextField(
       controller: controller,
+      focusNode: focusNode,
       keyboardType: keyboard,
       autofillHints: autofillHints,
       textInputAction: textInputAction,
+      textCapitalization: TextCapitalization.none,
       autocorrect: false,
       enableSuggestions: false,
+      onSubmitted: onSubmitted,
       decoration: InputDecoration(
         hintText: hint,
         prefixIcon: Icon(icon, color: Colors.teal),
@@ -778,17 +798,24 @@ class _HomeTabState extends State<_HomeTab> {
         ),
         actions: [
           Padding(
-            padding: const EdgeInsets.only(right: 12),
-            child: CircleAvatar(
-              radius: 20,
-              backgroundColor: Colors.white24,
-              backgroundImage:
-                  _profileImageBase64 != null && _profileImageBase64!.isNotEmpty
-                  ? MemoryImage(base64Decode(_profileImageBase64!))
-                  : null,
-              child: _profileImageBase64 == null || _profileImageBase64!.isEmpty
-                  ? const Icon(Icons.person, color: Colors.white, size: 20)
-                  : null,
+            padding: const EdgeInsets.only(right: 8),
+            child: IconButton(
+              tooltip: 'Open profile',
+              onPressed: () => widget.onTabChange(4),
+              icon: CircleAvatar(
+                radius: 20,
+                backgroundColor: Colors.white24,
+                backgroundImage:
+                    _profileImageBase64 != null &&
+                        _profileImageBase64!.isNotEmpty
+                    ? MemoryImage(base64Decode(_profileImageBase64!))
+                    : null,
+                child:
+                    _profileImageBase64 == null ||
+                        _profileImageBase64!.isEmpty
+                    ? const Icon(Icons.person, color: Colors.white, size: 20)
+                    : null,
+              ),
             ),
           ),
         ],
