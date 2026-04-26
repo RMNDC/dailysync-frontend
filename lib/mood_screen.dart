@@ -67,7 +67,7 @@ class _MoodScreenState extends State<MoodScreen> {
 
   Future<void> _loadQuote() async {
     try {
-      final response = await http.get(Uri.parse('$BASE_URL/daily-quote'));
+      final response = await http.get(Uri.parse('$baseUrl/daily-quote'));
       final data = jsonDecode(response.body);
       if (!mounted) return;
       setState(() => _quote = data['quote'] ?? 'Stay consistent, one day at a time.');
@@ -79,7 +79,7 @@ class _MoodScreenState extends State<MoodScreen> {
 
   Future<void> _loadMoods() async {
     try {
-      final response = await http.get(Uri.parse('$BASE_URL/moods'), headers: _headers);
+      final response = await http.get(Uri.parse('$baseUrl/moods'), headers: _headers);
       final data = jsonDecode(response.body);
       if (!mounted) return;
       if (data['success'] == true) {
@@ -104,7 +104,7 @@ class _MoodScreenState extends State<MoodScreen> {
     // ✅ Note is now optional — removed the early return guard
     try {
       final response = await http.post(
-        Uri.parse('$BASE_URL/moods'),
+        Uri.parse('$baseUrl/moods'),
         headers: _headers,
         body: jsonEncode({
           'mood': _selectedMood,
@@ -133,7 +133,7 @@ class _MoodScreenState extends State<MoodScreen> {
     final log = _moodLogs[index];
     try {
       await http.delete(
-        Uri.parse('$BASE_URL/moods/${log['_id']}'),
+        Uri.parse('$baseUrl/moods/${log['_id']}'),
         headers: _headers,
       );
       if (!mounted) return;
@@ -348,9 +348,9 @@ class _MoodScreenState extends State<MoodScreen> {
                 return Container(
                   padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
                   decoration: BoxDecoration(
-                    color: color.withOpacity(0.1),
+                    color: color.withValues(alpha: 0.1),
                     borderRadius: BorderRadius.circular(20),
-                    border: Border.all(color: color.withOpacity(0.3)),
+                    border: Border.all(color: color.withValues(alpha: 0.3)),
                   ),
                   child: Row(mainAxisSize: MainAxisSize.min, children: [
                     Container(width: 8, height: 8, decoration: BoxDecoration(color: color, shape: BoxShape.circle)),
@@ -406,7 +406,7 @@ class _MoodScreenState extends State<MoodScreen> {
                       barWidth: 2.5,
                       dotData: FlDotData(
                         show: true,
-                        getDotPainter: (_, __, ___, ____) => FlDotCirclePainter(
+                        getDotPainter: (_, _, _, _) => FlDotCirclePainter(
                           radius: 4,
                           color: Colors.orange,
                           strokeWidth: 2,
@@ -415,7 +415,7 @@ class _MoodScreenState extends State<MoodScreen> {
                       ),
                       belowBarData: BarAreaData(
                         show: true,
-                        color: Colors.orange.withOpacity(0.08),
+                        color: Colors.orange.withValues(alpha: 0.08),
                       ),
                     ),
                   ],
@@ -431,7 +431,7 @@ class _MoodScreenState extends State<MoodScreen> {
   Widget _statChip(String label, String value, Color color) => Expanded(
     child: Container(
       padding: const EdgeInsets.symmetric(vertical: 10),
-      decoration: BoxDecoration(color: color.withOpacity(0.1), borderRadius: BorderRadius.circular(12)),
+      decoration: BoxDecoration(color: color.withValues(alpha: 0.1), borderRadius: BorderRadius.circular(12)),
       child: Column(children: [
         Text(value, style: TextStyle(fontWeight: FontWeight.bold, fontSize: 18, color: color)),
         Text(label, style: const TextStyle(fontSize: 11, color: Colors.grey)),
@@ -471,13 +471,13 @@ class _MoodScreenState extends State<MoodScreen> {
               decoration: BoxDecoration(
                 color: Colors.white,
                 borderRadius: BorderRadius.circular(14),
-                border: Border.all(color: color.withOpacity(0.2), width: 1.5),
+                border: Border.all(color: color.withValues(alpha: 0.2), width: 1.5),
                 boxShadow: const [BoxShadow(color: Colors.black12, blurRadius: 5, offset: Offset(0, 2))],
               ),
               child: Row(children: [
                 Container(
                   padding: const EdgeInsets.all(8),
-                  decoration: BoxDecoration(color: color.withOpacity(0.1), borderRadius: BorderRadius.circular(10)),
+                  decoration: BoxDecoration(color: color.withValues(alpha: 0.1), borderRadius: BorderRadius.circular(10)),
                   child: Text(log['mood'] ?? '', style: const TextStyle(fontSize: 26)),
                 ),
                 const SizedBox(width: 12),

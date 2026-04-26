@@ -24,12 +24,6 @@ class _AnalyticsScreenState extends State<AnalyticsScreen> {
     '😊': 5.0, '🥳': 5.0, '😐': 3.0, '😴': 2.0,
     '😢': 1.0, '😰': 1.0, '😡': 0.0,
   };
-  static const _moodColors = {
-    '😊': Color(0xFF4CAF50), '😐': Color(0xFF9E9E9E),
-    '😢': Color(0xFF42A5F5), '😡': Color(0xFFEF5350),
-    '🥳': Color(0xFFAB47BC), '😴': Color(0xFF78909C),
-    '😰': Color(0xFFFF7043),
-  };
 
   Map<String, String> get _headers => {
     'Content-Type': 'application/json',
@@ -46,18 +40,24 @@ class _AnalyticsScreenState extends State<AnalyticsScreen> {
     setState(() => _isLoading = true);
     try {
       final results = await Future.wait([
-        http.get(Uri.parse('$BASE_URL/habits'), headers: _headers),
-        http.get(Uri.parse('$BASE_URL/moods'), headers: _headers),
-        http.get(Uri.parse('$BASE_URL/goals'), headers: _headers),
+        http.get(Uri.parse('$baseUrl/habits'), headers: _headers),
+        http.get(Uri.parse('$baseUrl/moods'), headers: _headers),
+        http.get(Uri.parse('$baseUrl/goals'), headers: _headers),
       ]);
       if (!mounted) return;
       final hData = jsonDecode(results[0].body);
       final mData = jsonDecode(results[1].body);
       final gData = jsonDecode(results[2].body);
       setState(() {
-        if (hData['success'] == true) _habits = List<Map<String, dynamic>>.from(hData['habits']);
-        if (mData['success'] == true) _moods = List<Map<String, dynamic>>.from(mData['moods']);
-        if (gData['success'] == true) _goals = List<Map<String, dynamic>>.from(gData['goals']);
+        if (hData['success'] == true) {
+          _habits = List<Map<String, dynamic>>.from(hData['habits']);
+        }
+        if (mData['success'] == true) {
+          _moods = List<Map<String, dynamic>>.from(mData['moods']);
+        }
+        if (gData['success'] == true) {
+          _goals = List<Map<String, dynamic>>.from(gData['goals']);
+        }
       });
     } catch (_) {
       if (mounted) {
@@ -153,7 +153,7 @@ class _AnalyticsScreenState extends State<AnalyticsScreen> {
           Wrap(spacing: 8, runSpacing: 8, children: catCounts.entries.map((e) =>
             Container(
               padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
-              decoration: BoxDecoration(color: Colors.teal.withOpacity(0.1), borderRadius: BorderRadius.circular(20)),
+              decoration: BoxDecoration(color: Colors.teal.withValues(alpha: 0.1), borderRadius: BorderRadius.circular(20)),
               child: Text('${e.key} · ${e.value}', style: const TextStyle(fontSize: 12, color: Colors.teal, fontWeight: FontWeight.w600)),
             )
           ).toList()),
@@ -257,7 +257,7 @@ class _AnalyticsScreenState extends State<AnalyticsScreen> {
                 color: Colors.orange,
                 barWidth: 2.5,
                 dotData: FlDotData(show: false),
-                belowBarData: BarAreaData(show: true, color: Colors.orange.withOpacity(0.08)),
+                belowBarData: BarAreaData(show: true, color: Colors.orange.withValues(alpha: 0.08)),
               )],
             )),
           ),
@@ -272,7 +272,7 @@ class _AnalyticsScreenState extends State<AnalyticsScreen> {
             margin: const EdgeInsets.symmetric(horizontal: 2),
             padding: const EdgeInsets.symmetric(vertical: 8),
             decoration: BoxDecoration(
-              color: isBest ? Colors.orange.withOpacity(0.15) : Colors.grey.shade50,
+              color: isBest ? Colors.orange.withValues(alpha: 0.15) : Colors.grey.shade50,
               borderRadius: BorderRadius.circular(8),
               border: Border.all(color: isBest ? Colors.orange : Colors.transparent, width: 1.5),
             ),
@@ -334,7 +334,7 @@ class _AnalyticsScreenState extends State<AnalyticsScreen> {
                 child: LinearProgressIndicator(
                   value: maxVal == 0 ? 0 : e.value / maxVal,
                   minHeight: 10,
-                  backgroundColor: color.withOpacity(0.1),
+                  backgroundColor: color.withValues(alpha: 0.1),
                   valueColor: AlwaysStoppedAnimation<Color>(color),
                 ),
               )),
@@ -385,7 +385,7 @@ class _AnalyticsScreenState extends State<AnalyticsScreen> {
   Widget _miniStat(String value, String label, Color color) => Expanded(
     child: Container(
       padding: const EdgeInsets.symmetric(vertical: 10),
-      decoration: BoxDecoration(color: color.withOpacity(0.1), borderRadius: BorderRadius.circular(12)),
+      decoration: BoxDecoration(color: color.withValues(alpha: 0.1), borderRadius: BorderRadius.circular(12)),
       child: Column(children: [
         Text(value, style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16, color: color)),
         Text(label, style: const TextStyle(fontSize: 10, color: Colors.grey)),

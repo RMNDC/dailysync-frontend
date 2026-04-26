@@ -49,7 +49,7 @@ class _HabitsScreenState extends State<HabitsScreen> {
 
   void _loadHabits() async {
     try {
-      final response = await http.get(Uri.parse('$BASE_URL/habits'), headers: _headers);
+      final response = await http.get(Uri.parse('$baseUrl/habits'), headers: _headers);
       final data = jsonDecode(response.body);
       if (data['success'] == true) {
         setState(() {
@@ -69,7 +69,7 @@ class _HabitsScreenState extends State<HabitsScreen> {
     if (_habitController.text.trim().isEmpty) return;
     try {
       final response = await http.post(
-        Uri.parse('$BASE_URL/habits'),
+        Uri.parse('$baseUrl/habits'),
         headers: _headers,
         body: jsonEncode({
           'name': _habitController.text.trim(),
@@ -77,6 +77,8 @@ class _HabitsScreenState extends State<HabitsScreen> {
         }),
       );
       final data = jsonDecode(response.body);
+      if (!mounted) return;
+
       if (data['success'] == true) {
         setState(() {
           _habits.add(data['habit']);
@@ -100,11 +102,13 @@ class _HabitsScreenState extends State<HabitsScreen> {
     final newDone = !(habit['done'] ?? false);
     try {
       final response = await http.put(
-        Uri.parse('$BASE_URL/habits/${habit['_id']}'),
+        Uri.parse('$baseUrl/habits/${habit['_id']}'),
         headers: _headers,
         body: jsonEncode({'done': newDone}),
       );
       final data = jsonDecode(response.body);
+      if (!mounted) return;
+
       if (data['success'] == true) {
         setState(() => _habits[index] = Map<String, dynamic>.from(data['habit']));
         if (newDone) {
@@ -123,7 +127,7 @@ class _HabitsScreenState extends State<HabitsScreen> {
   void _deleteHabit(int index) async {
     final habit = _habits[index];
     try {
-      await http.delete(Uri.parse('$BASE_URL/habits/${habit['_id']}'), headers: _headers);
+      await http.delete(Uri.parse('$baseUrl/habits/${habit['_id']}'), headers: _headers);
       setState(() => _habits.removeAt(index));
     } catch (e) {
       debugPrint('Error deleting habit: $e');
@@ -313,15 +317,15 @@ class _HabitsScreenState extends State<HabitsScreen> {
         margin: const EdgeInsets.only(bottom: 12),
         padding: const EdgeInsets.all(18),
         decoration: BoxDecoration(
-          color: isDone ? color.withOpacity(0.08) : Colors.white,
+          color: isDone ? color.withValues(alpha: 0.08) : Colors.white,
           borderRadius: BorderRadius.circular(18),
           border: Border.all(
-            color: isDone ? color.withOpacity(0.4) : Colors.grey.shade200,
+            color: isDone ? color.withValues(alpha: 0.4) : Colors.grey.shade200,
             width: isDone ? 2 : 1,
           ),
           boxShadow: [
             BoxShadow(
-              color: isDone ? color.withOpacity(0.15) : Colors.black.withOpacity(0.06),
+              color: isDone ? color.withValues(alpha: 0.15) : Colors.black.withValues(alpha: 0.06),
               blurRadius: 10,
               offset: const Offset(0, 4),
             ),
@@ -370,7 +374,7 @@ class _HabitsScreenState extends State<HabitsScreen> {
                     Container(
                       padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
                       decoration: BoxDecoration(
-                        color: color.withOpacity(0.12),
+                        color: color.withValues(alpha: 0.12),
                         borderRadius: BorderRadius.circular(8),
                       ),
                       child: Text(
@@ -383,7 +387,7 @@ class _HabitsScreenState extends State<HabitsScreen> {
                       Container(
                         padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
                         decoration: BoxDecoration(
-                          color: Colors.deepOrange.withOpacity(0.1),
+                          color: Colors.deepOrange.withValues(alpha: 0.1),
                           borderRadius: BorderRadius.circular(8),
                         ),
                         child: Text(
@@ -403,7 +407,7 @@ class _HabitsScreenState extends State<HabitsScreen> {
               child: Container(
                 padding: const EdgeInsets.all(6),
                 decoration: BoxDecoration(
-                  color: Colors.red.withOpacity(0.08),
+                  color: Colors.red.withValues(alpha: 0.08),
                   borderRadius: BorderRadius.circular(8),
                 ),
                 child: const Icon(Icons.delete_outline, color: Colors.red, size: 18),

@@ -1,1 +1,1 @@
-const String BASE_URL = 'https://dailysync-backend-kj5w.onrender.com';
+const String baseUrl = 'https://dailysync-backend-kj5w.onrender.com';

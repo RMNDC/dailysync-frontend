@@ -1,4 +1,5 @@
 import 'dart:convert';
+// ignore: avoid_web_libraries_in_flutter, deprecated_member_use
 import 'dart:html' as html;
 
 import 'package:flutter/material.dart';
@@ -162,7 +163,7 @@ class _LoginScreenState extends State<LoginScreen> {
 
     try {
       final response = await http.post(
-        Uri.parse('$BASE_URL/login'),
+        Uri.parse('$baseUrl/login'),
         headers: {'Content-Type': 'application/json'},
         body: jsonEncode({
           'email': _emailCtrl.text.trim(),
@@ -571,7 +572,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
         decoration: BoxDecoration(
           boxShadow: [
             BoxShadow(
-              color: Colors.black.withOpacity(0.08),
+              color: Colors.black.withValues(alpha: 0.08),
               blurRadius: 12,
               offset: const Offset(0, -3),
             ),
@@ -673,7 +674,7 @@ class _HomeTabState extends State<_HomeTab> {
   Future<void> _loadProfile() async {
     try {
       final res = await http.get(
-        Uri.parse('$BASE_URL/profile'),
+        Uri.parse('$baseUrl/profile'),
         headers: _headers,
       );
       final data = jsonDecode(res.body);
@@ -690,7 +691,7 @@ class _HomeTabState extends State<_HomeTab> {
   Future<void> _loadHabitsSummary() async {
     try {
       final res = await http.get(
-        Uri.parse('$BASE_URL/habits'),
+        Uri.parse('$baseUrl/habits'),
         headers: _headers,
       );
       final data = jsonDecode(res.body);
@@ -713,7 +714,7 @@ class _HomeTabState extends State<_HomeTab> {
   Future<void> _loadMoodSummary() async {
     try {
       final res = await http.get(
-        Uri.parse('$BASE_URL/moods'),
+        Uri.parse('$baseUrl/moods'),
         headers: _headers,
       );
       final data = jsonDecode(res.body);
@@ -739,7 +740,7 @@ class _HomeTabState extends State<_HomeTab> {
   Future<void> _loadGoalsSummary() async {
     try {
       final res = await http.get(
-        Uri.parse('$BASE_URL/goals'),
+        Uri.parse('$baseUrl/goals'),
         headers: _headers,
       );
       final data = jsonDecode(res.body);
@@ -1056,7 +1057,7 @@ class _DashboardCard extends StatelessWidget {
           borderRadius: BorderRadius.circular(20),
           boxShadow: [
             BoxShadow(
-              color: gradientColors[0].withOpacity(0.4),
+              color: gradientColors[0].withValues(alpha: 0.4),
               blurRadius: 12,
               offset: const Offset(0, 6),
             ),

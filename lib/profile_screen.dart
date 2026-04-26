@@ -1,4 +1,5 @@
 import 'dart:convert';
+// ignore: avoid_web_libraries_in_flutter, deprecated_member_use
 import 'dart:html' as html;
 
 import 'package:flutter/material.dart';
@@ -50,10 +51,10 @@ class _ProfileScreenState extends State<ProfileScreen> {
   Future<void> _loadProfile() async {
     try {
       final results = await Future.wait([
-        http.get(Uri.parse('$BASE_URL/profile'), headers: _headers),
-        http.get(Uri.parse('$BASE_URL/habits'), headers: _headers),
-        http.get(Uri.parse('$BASE_URL/goals'), headers: _headers),
-        http.get(Uri.parse('$BASE_URL/moods'), headers: _headers),
+        http.get(Uri.parse('$baseUrl/profile'), headers: _headers),
+        http.get(Uri.parse('$baseUrl/habits'), headers: _headers),
+        http.get(Uri.parse('$baseUrl/goals'), headers: _headers),
+        http.get(Uri.parse('$baseUrl/moods'), headers: _headers),
       ]);
       if (!mounted) return;
       final pData = jsonDecode(results[0].body);
@@ -68,12 +69,15 @@ class _ProfileScreenState extends State<ProfileScreen> {
         });
       }
       setState(() {
-        if (hData['success'] == true)
+        if (hData['success'] == true) {
           _habitsCount = (hData['habits'] as List).length;
-        if (gData['success'] == true)
+        }
+        if (gData['success'] == true) {
           _goalsCount = (gData['goals'] as List).length;
-        if (mData['success'] == true)
+        }
+        if (mData['success'] == true) {
           _moodsCount = (mData['moods'] as List).length;
+        }
       });
     } catch (_) {
     } finally {
@@ -88,7 +92,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
     });
     try {
       final response = await http.put(
-        Uri.parse('$BASE_URL/profile'),
+        Uri.parse('$baseUrl/profile'),
         headers: _headers,
         body: jsonEncode({
           'username': _usernameController.text.trim(),

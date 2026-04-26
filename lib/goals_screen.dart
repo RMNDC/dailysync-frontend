@@ -100,7 +100,7 @@ class _GoalsScreenState extends State<GoalsScreen> {
   void _loadGoals() async {
     try {
       final response = await http.get(
-        Uri.parse('$BASE_URL/goals'),
+        Uri.parse('$baseUrl/goals'),
         headers: _headers,
       );
       final data = jsonDecode(response.body);
@@ -122,7 +122,7 @@ class _GoalsScreenState extends State<GoalsScreen> {
     if (_goalController.text.trim().isEmpty) return;
     try {
       final response = await http.post(
-        Uri.parse('$BASE_URL/goals'),
+        Uri.parse('$baseUrl/goals'),
         headers: _headers,
         body: jsonEncode({
           'name': _goalController.text.trim(),
@@ -132,6 +132,8 @@ class _GoalsScreenState extends State<GoalsScreen> {
         }),
       );
       final data = jsonDecode(response.body);
+      if (!mounted) return;
+
       if (data['success'] == true) {
         setState(() {
           _goals.add(data['goal']);
@@ -158,10 +160,12 @@ class _GoalsScreenState extends State<GoalsScreen> {
     final newDone = !(goal['done'] ?? false);
     try {
       await http.put(
-        Uri.parse('$BASE_URL/goals/${goal['_id']}'),
+        Uri.parse('$baseUrl/goals/${goal['_id']}'),
         headers: _headers,
         body: jsonEncode({'done': newDone}),
       );
+      if (!mounted) return;
+
       setState(() => _goals[index]['done'] = newDone);
       if (newDone) {
         ScaffoldMessenger.of(context).showSnackBar(
@@ -181,7 +185,7 @@ class _GoalsScreenState extends State<GoalsScreen> {
     final goal = _goals[index];
     try {
       await http.delete(
-        Uri.parse('$BASE_URL/goals/${goal['_id']}'),
+        Uri.parse('$baseUrl/goals/${goal['_id']}'),
         headers: _headers,
       );
       setState(() => _goals.removeAt(index));
@@ -203,7 +207,9 @@ class _GoalsScreenState extends State<GoalsScreen> {
         child: child!,
       ),
     );
-    if (picked != null) setState(() => _selectedDueDate = picked);
+    if (picked != null) {
+      setState(() => _selectedDueDate = picked);
+    }
   }
 
   // ── Filtered list ────────────────────────────────────────────────────────────
@@ -375,7 +381,7 @@ class _GoalsScreenState extends State<GoalsScreen> {
       child: ListView.separated(
         scrollDirection: Axis.horizontal,
         itemCount: kGoalCategories.length,
-        separatorBuilder: (_, __) => const SizedBox(width: 8),
+        separatorBuilder: (_, _) => const SizedBox(width: 8),
         itemBuilder: (context, i) {
           final cat = kGoalCategories[i];
           final isSelected = _filterCategory == cat.name;
@@ -393,7 +399,7 @@ class _GoalsScreenState extends State<GoalsScreen> {
                 boxShadow: isSelected
                     ? [
                         BoxShadow(
-                          color: cat.color.withOpacity(0.3),
+                          color: cat.color.withValues(alpha: 0.3),
                           blurRadius: 6,
                           offset: const Offset(0, 2),
                         ),
@@ -632,7 +638,7 @@ class _GoalsScreenState extends State<GoalsScreen> {
             padding: const EdgeInsets.symmetric(vertical: 8),
             decoration: BoxDecoration(
               color: isSelected
-                  ? p.color.withOpacity(0.12)
+                  ? p.color.withValues(alpha: 0.12)
                   : Colors.grey.shade100,
               borderRadius: BorderRadius.circular(10),
               border: Border.all(
@@ -681,10 +687,11 @@ class _GoalsScreenState extends State<GoalsScreen> {
   // ── Goal list ─────────────────────────────────────────────────────────────────
 
   Widget _buildGoalList() {
-    if (_isLoading)
+    if (_isLoading) {
       return const Center(
         child: CircularProgressIndicator(color: Colors.purple),
       );
+    }
 
     final filtered = _filtered;
 
@@ -831,7 +838,7 @@ class _GoalsScreenState extends State<GoalsScreen> {
                       ),
                       margin: const EdgeInsets.only(right: 6, bottom: 4),
                       decoration: BoxDecoration(
-                        color: cat.color.withOpacity(0.12),
+                        color: cat.color.withValues(alpha: 0.12),
                         borderRadius: BorderRadius.circular(8),
                       ),
                       child: Row(
@@ -857,7 +864,7 @@ class _GoalsScreenState extends State<GoalsScreen> {
                       ),
                       margin: const EdgeInsets.only(bottom: 4),
                       decoration: BoxDecoration(
-                        color: priority.color.withOpacity(0.1),
+                        color: priority.color.withValues(alpha: 0.1),
                         borderRadius: BorderRadius.circular(8),
                       ),
                       child: Row(
